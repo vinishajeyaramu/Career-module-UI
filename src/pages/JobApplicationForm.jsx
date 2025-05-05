@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import axios from "axios";
 import { NavLink, useNavigate, useParams } from "react-router-dom";
 import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
@@ -8,7 +8,6 @@ const candidatesUrl = import.meta.env.VITE_CANDIDATES_URL;
 function JobApplicationForm() {
   const {id}=useParams();
   const { jobtitle } = useParams();
-
 
   const navigate = useNavigate();
 
@@ -28,8 +27,42 @@ function JobApplicationForm() {
   const [errors, setErrors] = useState({});
   const [fileMessages, setFileMessages] = useState({});
 
+  const fieldRefs = {
+    first_name: useRef(null),
+    last_name: useRef(null),
+    email: useRef(null),
+    phone: useRef(null),
+    linkedin: useRef(null),
+    resume: useRef(null)
+  };
+
+  const validateLinkedIn = (username) => {
+    const regex = /^[a-zA-Z0-9-]+$/;
+    return regex.test(username);
+  };
+
+  const validateName = (value) => {
+    const regex = /^[A-Za-z\s]+$/;
+    return regex.test(value);
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    if ((name === 'first_name' || name === 'last_name') && value !== '') {
+      if (!validateName(value)) return;
+    }
+    
+    if (name === 'phone') {
+      if (!/^\d*$/.test(value)) return;
+    }
+    
+    if (name === 'linkedin') {
+      const username = value.replace(/^.*linkedin\.com\/in\//i, '').replace(/\/.*/g, '');
+      setFormData({ ...formData, [name]: username });
+      return;
+    }
+
     setFormData({ ...formData, [name]: value });
   };
 
@@ -51,27 +84,48 @@ function JobApplicationForm() {
     }
   };
 
-  const validateLinkedIn = (url) => {
-    const regex = /^(https?:\/\/)?(www\.)?linkedin\.com\/.*$/;
-    return regex.test(url);
-  };
-
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.first_name) newErrors.first_name = "First name is required";
-    if (!formData.last_name) newErrors.last_name = "Last name is required ";
-    if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.phone) newErrors.phone = "Phone number is required";
-    if (!formData.linkedin) {
-      newErrors.linkedin = "LinkedIn profile is required";
-    } else if (!validateLinkedIn(formData.linkedin)) {
-      newErrors.linkedin = "Please enter a valid LinkedIn profile URL";
+    
+    if (!formData.first_name) {
+      newErrors.first_name = "First name is required";
+    } else if (!validateName(formData.first_name)) {
+      newErrors.first_name = "First name should only contain letters";
     }
-    // if (!formData.website) newErrors.website = "Website is required";
-
+  
+    if (!formData.last_name) {
+      newErrors.last_name = "Last name is required";
+    } else if (!validateName(formData.last_name)) {
+      newErrors.last_name = "Last name should only contain letters";
+    }
+  
+    if (!formData.email) newErrors.email = "Email is required";
+    if (!formData.phone) {
+      newErrors.phone = "Phone number is required";
+    } else if (!/^\d{10}$/.test(formData.phone)) {
+      newErrors.phone = "Phone number must be 10 digits";
+    }
+  
+    if (!formData.linkedin) {
+      newErrors.linkedin = "LinkedIn username is required";
+    } else if (!validateLinkedIn(formData.linkedin)) {
+      newErrors.linkedin = "Please enter a valid LinkedIn username";
+    }
+  
     if (!formData.resume) newErrors.resume = "Resume is required";
     
     setErrors(newErrors);
+  
+    // If there are errors, scroll to the first error field
+    if (Object.keys(newErrors).length > 0) {
+      const firstError = Object.keys(newErrors)[0];
+      fieldRefs[firstError]?.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+      fieldRefs[firstError]?.current?.focus();
+    }
+  
     return Object.keys(newErrors).length === 0;
   };
 
@@ -108,7 +162,7 @@ function JobApplicationForm() {
       }
     }
   };
-
+  
   return (
     <div className="flex flex-col gap-5 p-4 mx-auto items-center justify-center">
       <NavLink to={`/job/${id}/${jobtitle}`} className="text-red-600 flex items-center">
@@ -133,6 +187,7 @@ function JobApplicationForm() {
                 type="text"
                 name="first_name"
                 value={formData.first_name}
+                ref={fieldRefs.first_name}
                 onChange={handleChange}
                 className="block w-full h-11 px-5 py-2.5 bg-white shadow-[0_4px_6px_-1px_rgba(254,202,202,0.5),0_2px_4px_-1px_rgba(254,202,202,0.5)] leading-7 text-base font-normal text-gray-900 bg-transparent border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none"
                 />
@@ -148,6 +203,7 @@ function JobApplicationForm() {
                 type="text"
                 name="last_name"
                 value={formData.last_name}
+                ref={fieldRefs.last_name}
                 onChange={handleChange}
                 className="block w-full h-11 px-5 py-2.5 bg-white shadow-[0_4px_6px_-1px_rgba(254,202,202,0.5),0_2px_4px_-1px_rgba(254,202,202,0.5)] leading-7 text-base font-normal text-gray-900 bg-transparent border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none"
                 />
@@ -164,6 +220,7 @@ function JobApplicationForm() {
               <input
                 type="email"
                 name="email"
+                ref={fieldRefs.email}
                 value={formData.email}
                 onChange={handleChange}
                 className="block w-full h-11 px-5 py-2.5 bg-white shadow-[0_4px_6px_-1px_rgba(254,202,202,0.5),0_2px_4px_-1px_rgba(254,202,202,0.5)] leading-7 text-base font-normal text-gray-900 bg-transparent border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none"
@@ -180,9 +237,11 @@ function JobApplicationForm() {
               <input
                 type="tel"
                 name="phone"
+                ref={fieldRefs.phone}
                 value={formData.phone}
                 onChange={handleChange}
-                pattern="[0-9]{10}"
+                maxLength="10"
+                placeholder="Enter 10 digit number"
                 className="block w-full h-11 px-5 py-2.5 bg-white shadow-[0_4px_6px_-1px_rgba(254,202,202,0.5),0_2px_4px_-1px_rgba(254,202,202,0.5)] leading-7 text-base font-normal text-gray-900 bg-transparent border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none"
                 
               />
@@ -201,6 +260,7 @@ function JobApplicationForm() {
             type="file"
             name="resume"
             onChange={handleFileChange}
+            ref={fieldRefs.resume}
             className="text-gray-500 font-medium w-full text-base file:cursor-pointer cursor-pointer file:text-black file:border-0 file:py-2.5 border file:px-4 file:mr-4 file:bg-gray-200 file:hover:bg-red-500 rounded"
             
           />
@@ -237,10 +297,11 @@ function JobApplicationForm() {
               LinkedIn Profile *
             </label>
             <input
-              type="url"
+              type="text"
               name="linkedin"
-              placeholder="Please mention your LinkedIn profile"
+              placeholder="Enter your LinkedIn username (e.g. johnsmith)"
               value={formData.linkedin}
+              ref={fieldRefs.linkedin}
               onChange={handleChange}
               className="block w-full h-11 px-5 py-2.5 bg-white shadow-[0_4px_6px_-1px_rgba(254,202,202,0.5),0_2px_4px_-1px_rgba(254,202,202,0.5)] leading-7 text-base font-normal text-gray-900 bg-transparent border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none"
               

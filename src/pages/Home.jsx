@@ -79,10 +79,10 @@ const Home = () => {
   }, []);
 
   useEffect(() => {
-    if (jobListRef.current) {
+    if (jobListRef.current && currentPage > 1) {
       jobListRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [currentPage, selectedLocations, selectedCategories]);
+  }, [currentPage]); // Only trigger on page changes
 
   const handleLocationChange = (locationTitle) => {
     setSelectedLocations((prev) =>
@@ -513,8 +513,11 @@ console.log(activeJobs);
                           </h1>
                         </Link>
                         <h3 className="text-xl text-gray-500 mt-4 mb-2">
-                          {item.job_experience_level}+ years
+                          {isNaN(item.job_experience_level)
+                          ? item.job_experience_level
+                            : `${item.job_experience_level}+ years`}
                         </h3>
+
                        
                         <div className="flex flex-nowrap gap-2 py-4 overflow-x-auto max-w-full">
                           {item.job_technical_skills.slice(0, 3).map((skill, skillIndex) => (

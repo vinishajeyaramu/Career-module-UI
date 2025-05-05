@@ -64,10 +64,12 @@ const JobDetail = () => {
             <div className="flex sm:flex-col lg:flex-row gap-3 lg:space-x-5">
             <li className=" gap-1 w-auto">
                 Experience Level:{" "}
-                <span className="text-black font-normal">
-                  {jobDetail.job_experience_level} Years
-                </span>
-              </li>
+              <span className="text-black font-normal">
+              {isNaN(jobDetail.job_experience_level)
+                 ? jobDetail.job_experience_level
+               : `${jobDetail.job_experience_level} Years`}
+              </span>
+            </li>
             <li className=" gap-1 w-auto">
                 Interview Rounds:{" "}
                 <span className="text-black font-normal">
@@ -154,7 +156,7 @@ const JobDetail = () => {
           SuperLabs & the work we do visit Featured Work
         </p>
         <br />
-        <p>
+        {/* <p>
           <b>Growth Marketing Associate at SuperLabs</b>
         </p>
         <br />
@@ -285,12 +287,31 @@ const JobDetail = () => {
         <p>
           <b>Job Description</b>
         </p>
-        <br />
+        <br />*/}
         <ul>
           <p
             dangerouslySetInnerHTML={{ __html: jobDetail.job_description }}
           ></p>
         </ul>
+        <div className="mt-6">
+  {Date.now() > new Date(jobDetail.job_close_date).getTime() ? (
+    <button
+      disabled
+      className="mt-6 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700"
+    >
+      Closed
+    </button>
+  ) : (
+    <button
+      onClick={() =>
+        navigate(`/job/${jobDetail.job_id}/${jobDetail.job_title}/apply`)
+      }
+      className="font-bold bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700"
+    >
+      Apply Now
+    </button>
+  )}
+</div>
       </div>
     </main>
   );
